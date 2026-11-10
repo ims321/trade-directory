@@ -5,11 +5,24 @@ const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
 // 1. Initialize Map
-const map = L.map('map', { minZoom: 2, worldCopyJump: true }).setView([20, 0], 2);
+const map = L.map('map', { 
+    minZoom: 2, 
+    worldCopyJump: true,
+    zoomAnimation: false, // 🚨 KILLS the glitchy flash
+    fadeAnimation: false, // 🚨 KILLS the glitchy flash
+    markerZoomAnimation: false
+}).setView([20, 0], 2);
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
-// Since the container is locked in CSS, we just need to ensure the map redraws on window resize
-window.addEventListener('resize', () => { map.invalidateSize({ pan: false }); });
+// 🚨 THE FIX: Hammer the redraw button to guarantee it catches the final layout size
+function hardRedraw() {
+    map.invalidateSize({ pan: false });
+}
+setTimeout(hardRedraw, 100);
+setTimeout(hardRedraw, 500);
+setTimeout(hardRedraw, 1000);
+window.addEventListener('resize', hardRedraw);
 
 let geoLayer;
 
@@ -49,6 +62,7 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           } else {
             $("#country-title").textContent = `Companies in ${countryName}`;
             $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
+            hardRedraw();
           }
         });
         
@@ -58,6 +72,7 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
         });
       }
     }).addTo(map);
+    hardRedraw();
   });
 
 // 3. Load initial count
@@ -95,7 +110,9 @@ async function loadCompanies(countryCode) {
         <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
       </tr>`).join("");
   }
-  // Note: No invalidateSize() needed here anymore, because the map size never changes!
+
+  // Redraw after table updates
+  hardRedraw();
 }
 
 // 5. AI Search
@@ -121,6 +138,7 @@ $("#ask").addEventListener("click", async () => {
           <td>${r.country_code ?? ""}</td>
           <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
         </tr>`).join("");
+      hardRedraw();
     }
   } catch (e) { answerDiv.textContent = "Error connecting to AI function."; }
 });
