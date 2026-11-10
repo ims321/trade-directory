@@ -4,11 +4,24 @@ const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
-// 1. Use standard OpenStreetMap tiles (No watermark)
-const map = L.map('map').setView([20, 0], 2);
+// 1. Initialize Map with maxBounds to keep it worldwide
+const southWest = L.latLng(-90, -180);
+const northEast = L.latLng(90, 180);
+const bounds = L.latLngBounds(southWest, northEast);
+
+const map = L.map('map', {
+    maxBounds: bounds,
+    maxBoundsViscosity: 1.0, // Prevents dragging out of bounds
+    minZoom: 2,
+    worldCopyJump: true
+}).setView([20, 0], 2);
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
+
+// FIX: Force map to recalculate size after CSS renders
+setTimeout(() => { map.invalidateSize(); }, 400);
 
 let geoLayer;
 
@@ -25,7 +38,6 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           let countryCode = props.ISO_A2;
           const countryName = props.ADMIN || props.name || "Selected Country";
           
-          // FIX: Handle -99 country codes that break the map
           if (countryCode === "-99" || !countryCode) {
               if (countryName.includes("India")) countryCode = "IN";
               else if (countryName.includes("South Africa")) countryCode = "ZA";
@@ -61,6 +73,8 @@ loadCompanies(null);
 
 // 4. Fetch Companies
 async function loadCompanies(countryCode) {
+  if (!countryCode) $("#country-title").textContent = "Global View";
+  
   $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Loading...</td></tr>';
   
   let q = sb.from("company_listing")
