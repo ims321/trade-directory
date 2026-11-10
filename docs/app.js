@@ -1,17 +1,15 @@
 const SUPABASE_URL = "https://dokxnqhxhdgyonwpwzii.supabase.co";
-const ANON_KEY     = "PASTE_YOUR_EYJ_KEY_HERE"; // <--- PUT YOUR eyJ... KEY HERE
+const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRva3hucWh4aGRneW9ud3B3emlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMjU0MTgsImV4cCI6MjEwOTgwMTQxOH0.C8IXHVzlS4aXuoZxAtoIDz4wxGxo76IHctfY1BuEye4"; // <--- PUT YOUR eyJ... KEY HERE
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
 // 1. Initialize Map
-const map = L.map('map', { 
-    minZoom: 2, 
-    worldCopyJump: true,
-    trackResize: true // Tell Leaflet to watch for container size changes
-}).setView([20, 0], 2);
-
+const map = L.map('map', { minZoom: 2, worldCopyJump: true }).setView([20, 0], 2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+// Ensure map loads correctly on first render
+setTimeout(() => map.invalidateSize(), 500);
 
 let geoLayer;
 
@@ -51,7 +49,6 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           } else {
             $("#country-title").textContent = `Companies in ${countryName}`;
             $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
-            forceMapRedraw();
           }
         });
         
@@ -63,23 +60,18 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
     }).addTo(map);
   });
 
-// 🚨 THE FIX: Nested requestAnimationFrame + setTimeout to force repaint
-function forceMapRedraw() {
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            map.invalidateSize({ pan: false });
-            setTimeout(() => { map.invalidateSize({ pan: false }); }, 100);
-        });
-    });
+// 3. Load initial count (With Error Handling)
+async function initCount() {
+    try {
+        const { count, error } = await sb.from("company_listing").select('*', { count: 'exact', head: true });
+        if (error) throw error;
+        $("#total-count").textContent = `${count || 0} Companies`;
+    } catch (err) {
+        $("#total-count").textContent = `0 Companies`;
+        console.error("Supabase error:", err);
+    }
 }
-
-// Force resize when window changes
-window.addEventListener('resize', forceMapRedraw);
-
-// 3. Load initial count
-sb.from("company_listing").select('*', { count: 'exact', head: true }).then(({ count }) => {
-  $("#total-count").textContent = `${count || 0} Companies`;
-});
+initCount();
 loadCompanies(null);
 
 // 4. Fetch Companies
@@ -88,32 +80,33 @@ async function loadCompanies(countryCode) {
   
   $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Loading...</td></tr>';
   
-  let q = sb.from("company_listing")
-    .select("name,country_code,website,email,sector_label,trade_role,source")
-    .order("name")
-    .limit(100);
+  try {
+    let q = sb.from("company_listing")
+      .select("name,country_code,website,email,sector_label,trade_role,source")
+      .order("name")
+      .limit(100);
 
-  if (countryCode) q = q.ilike("country_code", countryCode);
+    if (countryCode) q = q.ilike("country_code", countryCode);
 
-  const { data, error } = await q;
-  
-  if (error) { 
-    $("#rows").innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
-  } else if (!data || data.length === 0) {
-    $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
-  } else {
-    $("#rows").innerHTML = data.map(r => `
-      <tr>
-        <td><strong>${r.name ?? ""}</strong></td>
-        <td><span class="source-badge">${r.source ?? "Unknown"}</span></td>
-        <td>${r.trade_role ?? ""}</td>
-        <td>${r.country_code ?? ""}</td>
-        <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
-      </tr>`).join("");
+    const { data, error } = await q;
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
+    } else {
+      $("#rows").innerHTML = data.map(r => `
+        <tr>
+          <td><strong>${r.name ?? ""}</strong></td>
+          <td><span class="source-badge">${r.source ?? "Unknown"}</span></td>
+          <td>${r.trade_role ?? ""}</td>
+          <td>${r.country_code ?? ""}</td>
+          <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
+        </tr>`).join("");
+    }
+  } catch (err) {
+    $("#rows").innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${err.message}</td></tr>`;
   }
-
-  // Trigger the bulletproof redraw
-  forceMapRedraw();
 }
 
 // 5. AI Search
@@ -139,7 +132,6 @@ $("#ask").addEventListener("click", async () => {
           <td>${r.country_code ?? ""}</td>
           <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
         </tr>`).join("");
-      forceMapRedraw();
     }
   } catch (e) { answerDiv.textContent = "Error connecting to AI function."; }
 });
