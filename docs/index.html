@@ -19,18 +19,10 @@
   .probable{color:#8a6d00}
   .shell_risk{color:#b00020}
   .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  #auth-box{background:#ffebee;padding:12px;border-radius:8px;margin-bottom:16px;display:flex;gap:8px;align-items:center;}
 </style>
 </head>
 <body>
 <h2>Trade Directory</h2>
-
-<div id="auth-box">
-  <span>🔒 AI requires login:</span>
-  <input type="email" id="auth-email" placeholder="Email" value="test@example.com" style="margin:0;">
-  <input type="password" id="auth-password" placeholder="Password" value="password123" style="margin:0;">
-  <button id="auth-btn">Log In</button>
-</div>
 
 <div id="chat">
   <input id="q" placeholder="Ask AI: e.g. verified machinery exporters in India">
@@ -65,7 +57,6 @@
 </table>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- The ?v=3 forces Safari to ignore its cache -->
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

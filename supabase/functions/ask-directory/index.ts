@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const LLM_KEY      = Deno.env.get("LLM_API_KEY")?.trim()!;
@@ -15,7 +14,6 @@ const EXTRACT_PROMPT = `Extract search filters from the user's request about imp
 Return STRICT JSON only, no prose:
 {"country":"ZA|US|IN|null","hs_prefix":"2-digit string or null","tier":"verified|probable|shell_risk|null","keyword":"string or null"}`;
 
-// ADDED FULL CORS HEADERS
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status, 
@@ -37,18 +35,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return json({}, 200);
   if (req.method !== "POST") return json({ error: "method" }, 405);
 
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
-
-  const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: auth } },
-  });
-  const { data: { user }, error: authErr } = await userClient.auth.getUser();
-  if (authErr || !user) return json({ error: "unauthorized" }, 401);
-
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  const { data: ok } = await admin.rpc("check_ai_quota", { p_user: user.id });
+  // Use a dummy UUID for quota tracking since there is no logged-in user
+  const DUMMY_USER_ID = "00000000-0000-0000-0000-000000000000";
+  const { data: ok } = await admin.rpc("check_ai_quota", { p_user: DUMMY_USER_ID });
   if (!ok) return json({ error: "rate_limited", retry_after: "1h" }, 429);
 
   let msg = "";

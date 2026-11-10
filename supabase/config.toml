@@ -1,2 +1,2 @@
 [functions.ask-directory]
-verify_jwt = true
+verify_jwt = false
