@@ -5,30 +5,28 @@ const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
 // 1. Initialize Map
-// Removed minZoom: 2, and used fitWorld() to automatically fit the whole globe.
+// 🚨 THE FIX: Hardcoded global view, no wrap (prevents repeating worlds), strict bounds.
+const southWest = L.latLng(-85, -180);
+const northEast = L.latLng(85, 180);
+const bounds = L.latLngBounds(southWest, northEast);
+
 const map = L.map('map', { 
-    worldCopyJump: true,
+    maxBounds: bounds,
+    maxBoundsViscosity: 1.0,
+    minZoom: 2,
     zoomAnimation: false, 
     fadeAnimation: false
-}).fitWorld();
+}).setView([20, 0], 2); // Center at lat 20, lon 0, zoom level 2
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+    attribution: '&copy; OpenStreetMap',
+    noWrap: true // Prevents the map from repeating horizontally
+}).addTo(map);
 
-let initialLoad = true;
-
-function hardRedraw() {
-    map.invalidateSize({ pan: false });
-    if (initialLoad) {
-        map.fitWorld({ reset: true });
-    }
-}
-
-// Hammer the resize function to guarantee it catches the final width
-setTimeout(hardRedraw, 100);
-setTimeout(hardRedraw, 500);
-setTimeout(hardRedraw, 1000);
-
-setTimeout(() => { initialLoad = false; }, 1500);
+// Force redraw once the page settles
+setTimeout(() => { map.invalidateSize({ pan: false }); }, 100);
+setTimeout(() => { map.invalidateSize({ pan: false }); }, 500);
+setTimeout(() => { map.invalidateSize({ pan: false }); }, 1000);
 
 window.addEventListener('resize', () => { map.invalidateSize({ pan: false }); });
 
