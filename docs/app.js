@@ -4,10 +4,10 @@ const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
-// 1. Initialize Map
+// 1. Initialize Map with FREE OpenStreetMap Tiles (No API Key Required)
 const map = L.map('map').setView([20, 0], 2);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap &copy; CARTO'
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
 let geoLayer;
@@ -19,20 +19,26 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
     geoLayer = L.geoJSON(data, {
       style: { color: "#3388ff", weight: 1, fillOpacity: 0.1 },
       onEachFeature: function(feature, layer) {
-        // When a country is clicked
+        
         layer.on('click', function(e) {
-          const countryCode = feature.properties.ISO_A2;
-          const countryName = feature.properties.ADMIN;
+          // Try multiple standard GeoJSON properties to find the 2-letter country code
+          const props = feature.properties;
+          const countryCode = props.ISO_A2 || props.iso_a2 || props.ID || props.id;
+          const countryName = props.ADMIN || props.name || "Selected Country";
           
-          // Highlight the clicked country
+          // Highlight clicked country
           geoLayer.eachLayer(function(l) { l.setStyle({ color: "#3388ff", fillOpacity: 0.1 }); });
           layer.setStyle({ color: "#ff0000", fillOpacity: 0.5 });
           
           $("#country-title").textContent = `Companies in ${countryName} (${countryCode})`;
-          loadCompanies(countryCode);
+          
+          if (countryCode && countryCode !== "-99") {
+            loadCompanies(countryCode);
+          } else {
+            $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Could not determine country code for this region.</td></tr>';
+          }
         });
         
-        // Hover effects
         layer.on('mouseover', function() { layer.setStyle({ fillOpacity: 0.3 }); });
         layer.on('mouseout', function() { 
             if(layer.options.color !== "#ff0000") layer.setStyle({ fillOpacity: 0.1 }); 
@@ -45,7 +51,7 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
 sb.from("company_listing").select('*', { count: 'exact', head: true }).then(({ count }) => {
   $("#total-count").textContent = `${count || 0} Companies`;
 });
-loadCompanies(null);
+loadCompanies(null); // Load all initially
 
 // 4. Fetch Companies from Supabase
 async function loadCompanies(countryCode) {
@@ -57,7 +63,8 @@ async function loadCompanies(countryCode) {
     .limit(100);
 
   if (countryCode) {
-    q = q.eq("country_code", countryCode);
+    // Use ilike for safer matching in case the DB has full names instead of ISO codes
+    q = q.ilike("country_code", countryCode);
   }
 
   const { data, error } = await q;
