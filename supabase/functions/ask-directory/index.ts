@@ -81,8 +81,8 @@ Deno.serve(async (req) => {
     
   if (country) q = q.eq("country_code", country);
   if (tier)    q = q.eq("verification_tier", tier);
-  if (role)    q = q.eq("trade_role", role);
-  if (sector)  q = q.eq("sector_label", sector);
+  if (role)    q = q.ilike("trade_role", `%${role}%`); // Partial match
+  if (sector)  q = q.ilike("sector_label", `%${sector}%`); // Partial match
   if (hs)      q = q.contains("hs_codes", [hs]);
   if (keyword) q = q.textSearch("search_vector", keyword, { type: "websearch" });
 

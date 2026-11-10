@@ -6,7 +6,8 @@
 <title>Trade Directory</title>
 <style>
   body{font:14px/1.5 system-ui,sans-serif;margin:0;padding:24px;max-width:1200px;margin:0 auto;color:#333;}
-  h2{margin-top:0;}
+  h2{margin-top:0;display:flex;align-items:center;gap:12px;}
+  .badge{background:#eef2f5;color:#333;font-size:12px;padding:4px 8px;border-radius:12px;font-weight:normal;}
   table{width:100%;border-collapse:collapse;margin-top:16px}
   th,td{text-align:left;padding:8px 12px;border-bottom:1px solid #eee;font-size:13px}
   input,select,button{padding:8px 12px;margin-right:8px;border:1px solid #ccc;border-radius:4px;}
@@ -22,7 +23,7 @@
 </style>
 </head>
 <body>
-<h2>Trade Directory</h2>
+<h2>Trade Directory <span id="total-count" class="badge">Loading...</span></h2>
 
 <div id="chat">
   <input id="q" placeholder="Ask AI: e.g. machinery manufacturers in India or fresh produce exporters from ZA">
@@ -52,10 +53,9 @@
     <option value="">All trade roles</option>
     <option value="Importer">Importer</option>
     <option value="Exporter">Exporter</option>
-    <option value="Importer/Exporter">Importer/Exporter</option>
     <option value="Distributor">Distributor</option>
     <option value="Manufacturer">Manufacturer</option>
-    <option value="Logistics/Forwarder">Logistics/Forwarder</option>
+    <option value="Logistics">Logistics/Forwarder</option>
   </select>
   <input id="f-hs" placeholder="HS-2 e.g. 84" size="8">
   <button id="go">Filter</button>
@@ -71,6 +71,6 @@
 </table>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
