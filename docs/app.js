@@ -1,6 +1,5 @@
 const SUPABASE_URL = "https://dokxnqhxhdgyonwpwzii.supabase.co";
-const ANON_KEY     = 
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRva3hucWh4aGRneW9ud3B3emlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMjU0MTgsImV4cCI6MjEwOTgwMTQxOH0.C8IXHVzlS4aXuoZxAtoIDz4wxGxo76IHctfY1BuEye4"; 
+const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRva3hucWh4aGRneW9ud3B3emlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMjU0MTgsImV4cCI6MjEwOTgwMTQxOH0.C8IXHVzlS4aXuoZxAtoIDz4wxGxo76IHctfY1BuEye4"; // <--- PUT YOUR eyJ... KEY HERE
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
@@ -9,7 +8,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#ask").addEventListener("click", ask);
   $("#q").addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
   
-  // Instant filtering on change
   $("#f-country").addEventListener("change", () => load(0));
   $("#f-sector").addEventListener("change", () => load(0));
   $("#f-role").addEventListener("change", () => load(0));
@@ -25,12 +23,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function render(rows) {
   if (!rows || rows.length === 0) {
-    $("#rows").innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No companies found matching those filters.</td></tr>';
+    $("#rows").innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">No companies found matching those filters.</td></tr>';
     return;
   }
   $("#rows").innerHTML = rows.map(r => `
     <tr>
       <td><strong>${r.name ?? ""}</strong></td>
+      <td><span class="source-badge">${r.source ?? "Unknown"}</span></td>
       <td>${r.trade_role ?? ""}</td>
       <td>${r.sector_label ?? ""}</td>
       <td>${r.country_code ?? ""}</td>
@@ -45,14 +44,18 @@ async function load(p = 0) {
   const role    = $("#f-role").value || null;
   const hs      = $("#f-hs").value.trim() || null;
 
-  let q = sb.from("company_listing").select("name,country_code,website,email,sector_label,trade_role,hs_codes").order("name").limit(50);
+  let q = sb.from("company_listing")
+    .select("name,country_code,website,email,sector_label,trade_role,source,hs_codes")
+    .order("name")
+    .limit(100);
+
   if (country) q = q.eq("country_code", country);
   if (sector)  q = q.ilike("sector_label", `%${sector}%`);
   if (role)    q = q.ilike("trade_role", `%${role}%`);
   if (hs)      q = q.contains("hs_codes", [hs]);
 
   const { data, error } = await q;
-  if (error) { $("#rows").innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${error.message}</td></tr>`; return; }
+  if (error) { $("#rows").innerHTML = `<tr><td colspan="7" style="color:red;">Error: ${error.message}</td></tr>`; return; }
   render(data);
 }
 
