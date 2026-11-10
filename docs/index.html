@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trade Directory</title>
+<style>
+  body{font:14px/1.5 system-ui,sans-serif;margin:0;padding:24px;max-width:1100px;margin:0 auto;color:#333;}
+  h2{margin-top:0;}
+  table{width:100%;border-collapse:collapse;margin-top:16px}
+  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid #eee;font-size:13px}
+  input,select,button{padding:8px 12px;margin-right:8px;border:1px solid #ccc;border-radius:4px;}
+  button{background:#000;color:#fff;border:none;cursor:pointer;font-weight:600;}
+  button:hover{background:#333;}
+  #chat{display:flex;gap:8px;margin:24px 0;background:#f9f9f9;padding:16px;border-radius:8px;border:1px solid #eee;}
+  #chat input{flex:1;}
+  #answer{background:#eef2f5;padding:16px;border-radius:6px;white-space:pre-wrap;margin-bottom:24px;display:none;}
+  .verified{color:#0a7d32;font-weight:600}
+  .probable{color:#8a6d00}
+  .shell_risk{color:#b00020}
+  .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  #auth-box{background:#ffebee;padding:12px;border-radius:8px;margin-bottom:16px;display:flex;gap:8px;align-items:center;}
+</style>
+</head>
+<body>
+<h2>Trade Directory</h2>
+
+<div id="auth-box">
+  <span>🔒 AI requires login:</span>
+  <input type="email" id="auth-email" placeholder="Email" value="test@example.com" style="margin:0;">
+  <input type="password" id="auth-password" placeholder="Password" value="password123" style="margin:0;">
+  <button id="auth-btn">Log In</button>
+</div>
+
+<div id="chat">
+  <input id="q" placeholder="Ask AI: e.g. verified machinery exporters in India">
+  <button id="ask">Ask AI</button>
+</div>
+<div id="answer"></div>
+
+<div class="filters">
+  <select id="f-country">
+    <option value="">All countries</option>
+    <option value="ZA">South Africa (ZA)</option>
+    <option value="US">United States (US)</option>
+    <option value="IN">India (IN)</option>
+  </select>
+  <select id="f-tier">
+    <option value="">All tiers</option>
+    <option value="verified">Verified</option>
+    <option value="probable">Probable</option>
+    <option value="shell_risk">Shell Risk</option>
+  </select>
+  <input id="f-hs" placeholder="HS-2 e.g. 84" size="10">
+  <button id="go">Filter List</button>
+</div>
+
+<table>
+  <thead>
+    <tr><th>Name</th><th>Country</th><th>Website</th><th>Email</th><th>Tier</th></tr>
+  </thead>
+  <tbody id="rows">
+    <tr><td colspan="5" style="text-align:center;color:#999;">Loading...</td></tr>
+  </tbody>
+</table>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- The ?v=3 forces Safari to ignore its cache -->
+<script src="app.js?v=3"></script>
+</body>
+</html>
