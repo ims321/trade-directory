@@ -8,26 +8,8 @@ const $ = s => document.querySelector(s);
 const map = L.map('map', { minZoom: 2, worldCopyJump: true }).setView([20, 0], 2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
-// 🚨 THE FIX: The Ultimate Redraw Function
-function forceMapResize() {
-    if (!map) return;
-    requestAnimationFrame(() => {
-        map.invalidateSize({ pan: false });
-        setTimeout(() => map.invalidateSize({ pan: false }), 100);
-        setTimeout(() => map.invalidateSize({ pan: false }), 300);
-        setTimeout(() => map.invalidateSize({ pan: false }), 600);
-    });
-}
-
-// Watch the map container itself for any size changes (scrollbars appearing, flexbox shifting)
-const mapContainer = document.getElementById('map');
-const resizeObserver = new ResizeObserver(() => {
-    forceMapResize();
-});
-resizeObserver.observe(mapContainer);
-
-// Also force resize on window changes
-window.addEventListener('resize', forceMapResize);
+// Since the container is locked in CSS, we just need to ensure the map redraws on window resize
+window.addEventListener('resize', () => { map.invalidateSize({ pan: false }); });
 
 let geoLayer;
 
@@ -67,7 +49,6 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           } else {
             $("#country-title").textContent = `Companies in ${countryName}`;
             $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
-            forceMapResize();
           }
         });
         
@@ -77,8 +58,6 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
         });
       }
     }).addTo(map);
-    // Force resize after GeoJSON is loaded
-    forceMapResize();
   });
 
 // 3. Load initial count
@@ -116,9 +95,7 @@ async function loadCompanies(countryCode) {
         <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
       </tr>`).join("");
   }
-
-  // Force redraw after table finishes rendering
-  forceMapResize();
+  // Note: No invalidateSize() needed here anymore, because the map size never changes!
 }
 
 // 5. AI Search
@@ -144,7 +121,6 @@ $("#ask").addEventListener("click", async () => {
           <td>${r.country_code ?? ""}</td>
           <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
         </tr>`).join("");
-      forceMapResize();
     }
   } catch (e) { answerDiv.textContent = "Error connecting to AI function."; }
 });
