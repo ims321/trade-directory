@@ -1,15 +1,17 @@
 const SUPABASE_URL = "https://dokxnqhxhdgyonwpwzii.supabase.co";
-const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRva3hucWh4aGRneW9ud3B3emlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMjU0MTgsImV4cCI6MjEwOTgwMTQxOH0.C8IXHVzlS4aXuoZxAtoIDz4wxGxo76IHctfY1BuEye4"; // <--- PUT YOUR eyJ... KEY HERE
+const ANON_KEY     = "PASTE_YOUR_EYJ_KEY_HERE"; // <--- PUT YOUR eyJ... KEY HERE
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
 // 1. Initialize Map
-const map = L.map('map', { minZoom: 2, worldCopyJump: true }).setView([20, 0], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+const map = L.map('map', { 
+    minZoom: 2, 
+    worldCopyJump: true,
+    trackResize: true // Tell Leaflet to watch for container size changes
+}).setView([20, 0], 2);
 
-// Ensure map loads correctly on first render
-setTimeout(() => map.invalidateSize(), 500);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
 let geoLayer;
 
@@ -30,7 +32,6 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           if (countryCode === "-99" || !countryCode) countryCode = props.WB_A2;
           if (countryCode === "-99" || !countryCode) countryCode = props.ID;
           
-          // Fallback map for missing codes (like Brazil, Australia, etc.)
           if (countryCode === "-99" || !countryCode) {
               if (countryName.includes("India")) countryCode = "IN";
               else if (countryName.includes("South Africa")) countryCode = "ZA";
@@ -50,7 +51,7 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           } else {
             $("#country-title").textContent = `Companies in ${countryName}`;
             $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
-            triggerMapResize();
+            forceMapRedraw();
           }
         });
         
@@ -62,12 +63,18 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
     }).addTo(map);
   });
 
-// Helper to pause and redraw map
-function triggerMapResize() {
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 300); // 300ms guarantees the table has fully resized
+// 🚨 THE FIX: Nested requestAnimationFrame + setTimeout to force repaint
+function forceMapRedraw() {
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            map.invalidateSize({ pan: false });
+            setTimeout(() => { map.invalidateSize({ pan: false }); }, 100);
+        });
+    });
 }
+
+// Force resize when window changes
+window.addEventListener('resize', forceMapRedraw);
 
 // 3. Load initial count
 sb.from("company_listing").select('*', { count: 'exact', head: true }).then(({ count }) => {
@@ -105,8 +112,8 @@ async function loadCompanies(countryCode) {
       </tr>`).join("");
   }
 
-  // Trigger the redraw
-  triggerMapResize();
+  // Trigger the bulletproof redraw
+  forceMapRedraw();
 }
 
 // 5. AI Search
@@ -132,7 +139,7 @@ $("#ask").addEventListener("click", async () => {
           <td>${r.country_code ?? ""}</td>
           <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
         </tr>`).join("");
-      triggerMapResize();
+      forceMapRedraw();
     }
   } catch (e) { answerDiv.textContent = "Error connecting to AI function."; }
 });

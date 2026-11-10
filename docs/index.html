@@ -19,13 +19,14 @@
   #ask{background:#000;color:#fff;padding:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;}
   #answer{background:#eef2f5;padding:12px;border-radius:6px;white-space:pre-wrap;display:none;font-size:13px;}
 
-  /* 🚨 BULLETPROOF LAYOUT: Absolute Positioning */
-  .main-content { flex: 1; position: relative; height: 100vh; }
+  /* 🚨 IRONCLAD LAYOUT: Strict Absolute Positioning */
+  .main-content { flex: 1; position: relative; height: 100vh; overflow: hidden; }
   
-  /* Map is locked to the top 55% */
-  #map { position: absolute; top: 0; left: 0; right: 0; bottom: 45%; z-index: 1; background:#e5e5e5; }
+  /* Lock the map to exactly the top 55% and prevent it from shrinking */
+  .map-wrapper { position: absolute; top: 0; left: 0; right: 0; height: 55%; overflow: hidden; z-index: 1; }
+  #map { width: 100%; height: 100%; background: #e5e5e5; }
   
-  /* Table is locked to the bottom 45% */
+  /* Lock the table to exactly the bottom 45% */
   .table-container { position: absolute; bottom: 0; left: 0; right: 0; height: 45%; overflow-y: auto; background: #fff; border-top: 2px solid #ccc; padding: 16px; box-sizing: border-box; z-index: 2; }
   
   table{width:100%;border-collapse:collapse;}
@@ -51,7 +52,9 @@
 </div>
 
 <div class="main-content">
-  <div id="map"></div>
+  <div class="map-wrapper">
+    <div id="map"></div>
+  </div>
   <div class="table-container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <h3 id="country-title" style="margin:0;">Global View</h3>
@@ -66,6 +69,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=25"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>
