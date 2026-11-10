@@ -6,39 +6,34 @@
 <title>Global Trade Directory</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  html, body { margin:0; padding:0; height:100vh; overflow:hidden; font:14px/1.5 system-ui,sans-serif; color:#333; display:flex; }
+  /* 1. Reset and lock the window */
+  html, body { margin:0; padding:0; height:100vh; overflow:hidden; font:14px/1.5 system-ui,sans-serif; color:#333; }
   
-  /* Sidebar */
-  .sidebar{width:350px;background:#f9f9f9;border-right:1px solid #ddd;padding:24px;display:flex;flex-direction:column;gap:16px; height: 100vh; box-sizing: border-box; z-index: 1000;}
-  h2{margin:0;font-size:20px;}
-  .badge{background:#eef2f5;color:#333;font-size:12px;padding:4px 8px;border-radius:12px;font-weight:normal;display:inline-block;}
+  /* 2. CSS Grid: Sidebar (350px) + Main Content (1fr) */
+  body { display: grid; grid-template-columns: 350px 1fr; }
   
-  /* AI Chat */
-  #chat{display:flex;flex-direction:column;gap:8px;}
-  #chat input{padding:10px;border:1px solid #ccc;border-radius:4px;}
-  #ask{background:#000;color:#fff;padding:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;}
-  #answer{background:#eef2f5;padding:12px;border-radius:6px;white-space:pre-wrap;display:none;font-size:13px;}
+  /* 3. Sidebar */
+  .sidebar { background:#f9f9f9; border-right:1px solid #ddd; padding:24px; display:flex; flex-direction:column; gap:16px; overflow-y: auto; }
+  h2 { margin:0; font-size:20px; }
+  .badge { background:#eef2f5; color:#333; font-size:12px; padding:4px 8px; border-radius:12px; font-weight:normal; display:inline-block; }
+  #chat { display:flex; flex-direction:column; gap:8px; }
+  #chat input { padding:10px; border:1px solid #ccc; border-radius:4px; }
+  #ask { background:#000; color:#fff; padding:10px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; }
+  #answer { background:#eef2f5; padding:12px; border-radius:6px; white-space:pre-wrap; display:none; font-size:13px; }
 
-  /* 🚨 BULLETPROOF LAYOUT */
-  .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; min-width: 0; }
+  /* 4. Main Content: Grid with Top (Map) and Bottom (Table) */
+  .main-content { display: grid; grid-template-rows: minmax(0, 1fr) 400px; height: 100vh; min-width: 0; }
   
-  /* Map takes all space above the table */
-  .map-wrapper { flex: 1; width: 100%; min-height: 0; position: relative; z-index: 1; }
+  /* 5. Map fills its cell exactly */
+  #map { width: 100%; height: 100%; background:#e5e5e5; z-index: 1; }
   
-  /* Force map to fill wrapper exactly and ignore any Leaflet CSS glitches */
-  #map, .leaflet-container { width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; background:#e5e5e5 !important; }
+  /* 6. Table is locked to 400px. scrollbar-gutter stops the layout shift. */
+  .table-container { overflow-y: auto; scrollbar-gutter: stable; background: #fff; border-top: 2px solid #ccc; padding: 16px; box-sizing: border-box; z-index: 2; }
   
-  /* Kill Leaflet's glitchy zoom animations */
-  .leaflet-zoom-animated { transition: none !important; }
-  .leaflet-pane { transition: none !important; }
-
-  /* Table locked to exactly 400px with stable scrollbar space */
-  .table-container { height: 400px; flex-shrink: 0; overflow-y: auto; scrollbar-gutter: stable; background: #fff; border-top: 2px solid #ccc; padding: 16px; box-sizing: border-box; z-index: 2; }
-  
-  table{width:100%;border-collapse:collapse;}
-  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;}
-  th{background:#f4f4f4;position:sticky;top:0;}
-  .source-badge{background:#e0e7ff;color:#3730a3;font-size:10px;padding:2px 6px;border-radius:4px;text-transform:uppercase;font-weight:bold;}
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:8px 12px; border-bottom:1px solid #eee; font-size:13px; }
+  th { background:#f4f4f4; position:sticky; top:0; }
+  .source-badge { background:#e0e7ff; color:#3730a3; font-size:10px; padding:2px 6px; border-radius:4px; text-transform:uppercase; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -58,9 +53,7 @@
 </div>
 
 <div class="main-content">
-  <div class="map-wrapper">
-    <div id="map"></div>
-  </div>
+  <div id="map"></div>
   <div class="table-container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <h3 id="country-title" style="margin:0;">Global View</h3>
@@ -75,6 +68,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=30"></script>
+<script src="app.js?v=31"></script>
 </body>
 </html>
