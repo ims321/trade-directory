@@ -4,62 +4,86 @@ const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
-document.addEventListener("DOMContentLoaded", async () => {
-  $("#ask").addEventListener("click", ask);
-  $("#q").addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
-  
-  $("#f-country").addEventListener("change", () => load(0));
-  $("#f-sector").addEventListener("change", () => load(0));
-  $("#f-role").addEventListener("change", () => load(0));
-  $("#f-hs").addEventListener("input", () => load(0));
-  
-  try {
-    const { count } = await sb.from("company_listing").select('*', { count: 'exact', head: true });
-    $("#total-count").textContent = `${count || 0} Companies`;
-  } catch (err) { $("#total-count").textContent = "Directory"; }
-  
-  load(0);
-});
+// 1. Initialize Map
+const map = L.map('map').setView([20, 0], 2);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO'
+}).addTo(map);
 
-function render(rows) {
-  if (!rows || rows.length === 0) {
-    $("#rows").innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">No companies found matching those filters.</td></tr>';
+let geoLayer;
+
+// 2. Load GeoJSON for Country Borders
+fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+  .then(res => res.json())
+  .then(data => {
+    geoLayer = L.geoJSON(data, {
+      style: { color: "#3388ff", weight: 1, fillOpacity: 0.1 },
+      onEachFeature: function(feature, layer) {
+        // When a country is clicked
+        layer.on('click', function(e) {
+          const countryCode = feature.properties.ISO_A2;
+          const countryName = feature.properties.ADMIN;
+          
+          // Highlight the clicked country
+          geoLayer.eachLayer(function(l) { l.setStyle({ color: "#3388ff", fillOpacity: 0.1 }); });
+          layer.setStyle({ color: "#ff0000", fillOpacity: 0.5 });
+          
+          $("#country-title").textContent = `Companies in ${countryName} (${countryCode})`;
+          loadCompanies(countryCode);
+        });
+        
+        // Hover effects
+        layer.on('mouseover', function() { layer.setStyle({ fillOpacity: 0.3 }); });
+        layer.on('mouseout', function() { 
+            if(layer.options.color !== "#ff0000") layer.setStyle({ fillOpacity: 0.1 }); 
+        });
+      }
+    }).addTo(map);
+  });
+
+// 3. Load initial count
+sb.from("company_listing").select('*', { count: 'exact', head: true }).then(({ count }) => {
+  $("#total-count").textContent = `${count || 0} Companies`;
+});
+loadCompanies(null);
+
+// 4. Fetch Companies from Supabase
+async function loadCompanies(countryCode) {
+  $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Loading...</td></tr>';
+  
+  let q = sb.from("company_listing")
+    .select("name,country_code,website,email,sector_label,trade_role,source")
+    .order("name")
+    .limit(100);
+
+  if (countryCode) {
+    q = q.eq("country_code", countryCode);
+  }
+
+  const { data, error } = await q;
+  
+  if (error) { 
+    $("#rows").innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
+    return; 
+  }
+  
+  if (!data || data.length === 0) {
+    $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
     return;
   }
-  $("#rows").innerHTML = rows.map(r => `
+
+  $("#rows").innerHTML = data.map(r => `
     <tr>
       <td><strong>${r.name ?? ""}</strong></td>
       <td><span class="source-badge">${r.source ?? "Unknown"}</span></td>
       <td>${r.trade_role ?? ""}</td>
-      <td>${r.sector_label ?? ""}</td>
       <td>${r.country_code ?? ""}</td>
       <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
-      <td>${r.email ?? ""}</td>
     </tr>`).join("");
 }
 
-async function load(p = 0) {
-  const country = $("#f-country").value || null;
-  const sector  = $("#f-sector").value || null;
-  const role    = $("#f-role").value || null;
-  const hs      = $("#f-hs").value.trim() || null;
-
-  let q = sb.from("company_listing")
-    .select("name,country_code,website,email,sector_label,trade_role,source,hs_codes")
-    .order("name")
-    .limit(100);
-
-  if (country) q = q.eq("country_code", country);
-  if (sector)  q = q.ilike("sector_label", `%${sector}%`);
-  if (role)    q = q.ilike("trade_role", `%${role}%`);
-  if (hs)      q = q.contains("hs_codes", [hs]);
-
-  const { data, error } = await q;
-  if (error) { $("#rows").innerHTML = `<tr><td colspan="7" style="color:red;">Error: ${error.message}</td></tr>`; return; }
-  render(data);
-}
-
-async function ask() {
+// 5. AI Search
+$("#ask").addEventListener("click", async () => {
   const message = $("#q").value.trim();
   if (!message) return;
   const answerDiv = $("#answer");
@@ -72,6 +96,15 @@ async function ask() {
     });
     const body = await res.json();
     answerDiv.textContent = body.answer ?? body.error ?? "No answer.";
-    if (body.rows) render(body.rows);
+    if (body.rows) {
+      $("#rows").innerHTML = body.rows.map(r => `
+        <tr>
+          <td><strong>${r.name ?? ""}</strong></td>
+          <td><span class="source-badge">${r.source ?? "Unknown"}</span></td>
+          <td>${r.trade_role ?? ""}</td>
+          <td>${r.country_code ?? ""}</td>
+          <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
+        </tr>`).join("");
+    }
   } catch (e) { answerDiv.textContent = "Error connecting to AI function."; }
-}
+});
