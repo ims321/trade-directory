@@ -4,14 +4,14 @@ const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
-// 1. Initialize Map with maxBounds to keep it worldwide
+// 1. Initialize Map
 const southWest = L.latLng(-90, -180);
 const northEast = L.latLng(90, 180);
 const bounds = L.latLngBounds(southWest, northEast);
 
 const map = L.map('map', {
     maxBounds: bounds,
-    maxBoundsViscosity: 1.0, // Prevents dragging out of bounds
+    maxBoundsViscosity: 1.0,
     minZoom: 2,
     worldCopyJump: true
 }).setView([20, 0], 2);
@@ -20,8 +20,11 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// FIX: Force map to recalculate size after CSS renders
-setTimeout(() => { map.invalidateSize(); }, 400);
+// 🚨 FIX: Force the map to redraw whenever the window or container resizes
+const resizeObserver = new ResizeObserver(() => {
+    map.invalidateSize();
+});
+resizeObserver.observe(document.getElementById('map'));
 
 let geoLayer;
 
@@ -32,7 +35,6 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
     geoLayer = L.geoJSON(data, {
       style: { color: "#3388ff", weight: 1, fillOpacity: 0.1 },
       onEachFeature: function(feature, layer) {
-        
         layer.on('click', function(e) {
           const props = feature.properties;
           let countryCode = props.ISO_A2;
@@ -53,7 +55,7 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           if (countryCode && countryCode !== "-99") {
             loadCompanies(countryCode);
           } else {
-            $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Country code not recognized on this map.</td></tr>';
+            $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Country code not recognized.</td></tr>';
           }
         });
         
@@ -82,9 +84,7 @@ async function loadCompanies(countryCode) {
     .order("name")
     .limit(100);
 
-  if (countryCode) {
-    q = q.ilike("country_code", countryCode);
-  }
+  if (countryCode) q = q.ilike("country_code", countryCode);
 
   const { data, error } = await q;
   
