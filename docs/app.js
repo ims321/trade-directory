@@ -5,30 +5,34 @@ const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
 // 1. Initialize Map
-// 🚨 THE FIX: Hardcoded global view, no wrap (prevents repeating worlds), strict bounds.
 const southWest = L.latLng(-85, -180);
 const northEast = L.latLng(85, 180);
-const bounds = L.latLngBounds(southWest, northEast);
+const worldBounds = L.latLngBounds(southWest, northEast);
 
 const map = L.map('map', { 
-    maxBounds: bounds,
+    maxBounds: worldBounds,
     maxBoundsViscosity: 1.0,
-    minZoom: 2,
+    minZoom: 1,
     zoomAnimation: false, 
     fadeAnimation: false
-}).setView([20, 0], 2); // Center at lat 20, lon 0, zoom level 2
+});
+
+// 🚨 THE FIX: Fit the exact boundaries of the world perfectly into the box
+map.fitBounds(worldBounds);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
     attribution: '&copy; OpenStreetMap',
-    noWrap: true // Prevents the map from repeating horizontally
+    noWrap: true 
 }).addTo(map);
 
-// Force redraw once the page settles
-setTimeout(() => { map.invalidateSize({ pan: false }); }, 100);
-setTimeout(() => { map.invalidateSize({ pan: false }); }, 500);
+// Force redraw to ensure the map fills the container
+setTimeout(() => { map.invalidateSize({ pan: false }); map.fitBounds(worldBounds); }, 100);
+setTimeout(() => { map.invalidateSize({ pan: false }); map.fitBounds(worldBounds); }, 500);
 setTimeout(() => { map.invalidateSize({ pan: false }); }, 1000);
 
-window.addEventListener('resize', () => { map.invalidateSize({ pan: false }); });
+window.addEventListener('resize', () => { 
+    map.invalidateSize({ pan: false }); 
+});
 
 let geoLayer;
 
