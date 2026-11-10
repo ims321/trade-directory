@@ -5,13 +5,7 @@ const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
 // 1. Initialize Map
-const southWest = L.latLng(-90, -180);
-const northEast = L.latLng(90, 180);
-const bounds = L.latLngBounds(southWest, northEast);
-
 const map = L.map('map', {
-    maxBounds: bounds,
-    maxBoundsViscosity: 1.0,
     minZoom: 2,
     worldCopyJump: true
 }).setView([20, 0], 2);
@@ -20,11 +14,8 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// 🚨 FIX: Force the map to redraw whenever the window or container resizes
-const resizeObserver = new ResizeObserver(() => {
-    map.invalidateSize();
-});
-resizeObserver.observe(document.getElementById('map'));
+// Force map to fix itself on window resize
+window.addEventListener('resize', () => { map.invalidateSize(); });
 
 let geoLayer;
 
@@ -35,27 +26,37 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
     geoLayer = L.geoJSON(data, {
       style: { color: "#3388ff", weight: 1, fillOpacity: 0.1 },
       onEachFeature: function(feature, layer) {
+        
         layer.on('click', function(e) {
           const props = feature.properties;
-          let countryCode = props.ISO_A2;
           const countryName = props.ADMIN || props.name || "Selected Country";
           
+          // Try multiple fields to find the ISO code
+          let countryCode = props.ISO_A2;
+          if (countryCode === "-99" || !countryCode) countryCode = props.ISO_A2_EH;
+          if (countryCode === "-99" || !countryCode) countryCode = props.WB_A2;
+          if (countryCode === "-99" || !countryCode) countryCode = props.ID;
+          
+          // Manual fallbacks for common missing ones
           if (countryCode === "-99" || !countryCode) {
               if (countryName.includes("India")) countryCode = "IN";
               else if (countryName.includes("South Africa")) countryCode = "ZA";
               else if (countryName.includes("United Kingdom")) countryCode = "GB";
               else if (countryName.includes("United States")) countryCode = "US";
+              else if (countryName.includes("France")) countryCode = "FR";
+              else if (countryName.includes("Brazil")) countryCode = "BR";
+              else if (countryName.includes("Australia")) countryCode = "AU";
           }
           
           geoLayer.eachLayer(function(l) { l.setStyle({ color: "#3388ff", fillOpacity: 0.1 }); });
           layer.setStyle({ color: "#ff0000", fillOpacity: 0.5 });
           
-          $("#country-title").textContent = `Companies in ${countryName} (${countryCode})`;
-          
           if (countryCode && countryCode !== "-99") {
+            $("#country-title").textContent = `Companies in ${countryName} (${countryCode})`;
             loadCompanies(countryCode);
           } else {
-            $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Country code not recognized.</td></tr>';
+            $("#country-title").textContent = `Companies in ${countryName}`;
+            $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Country code not recognized on this map.</td></tr>';
           }
         });
         
@@ -95,17 +96,19 @@ async function loadCompanies(countryCode) {
   
   if (!data || data.length === 0) {
     $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
-    return;
+  } else {
+    $("#rows").innerHTML = data.map(r => `
+      <tr>
+        <td><strong>${r.name ?? ""}</strong></td>
+        <td><span class="source-badge">${r.source ?? "Unknown"}</span></td>
+        <td>${r.trade_role ?? ""}</td>
+        <td>${r.country_code ?? ""}</td>
+        <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
+      </tr>`).join("");
   }
 
-  $("#rows").innerHTML = data.map(r => `
-    <tr>
-      <td><strong>${r.name ?? ""}</strong></td>
-      <td><span class="source-badge">${r.source ?? "Unknown"}</span></td>
-      <td>${r.trade_role ?? ""}</td>
-      <td>${r.country_code ?? ""}</td>
-      <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
-    </tr>`).join("");
+  // 🚨 THE FIX: Wait for the table to render, then force the map to redraw properly
+  setTimeout(() => { map.invalidateSize(); }, 250);
 }
 
 // 5. AI Search
@@ -131,6 +134,7 @@ $("#ask").addEventListener("click", async () => {
           <td>${r.country_code ?? ""}</td>
           <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
         </tr>`).join("");
+      setTimeout(() => { map.invalidateSize(); }, 250);
     }
   } catch (e) { answerDiv.textContent = "Error connecting to AI function."; }
 });

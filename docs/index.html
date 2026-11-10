@@ -6,11 +6,11 @@
 <title>Global Trade Directory</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  /* Prevent the page from scrolling, force it to fit the window */
+  /* Force the page to fit the window exactly */
   html, body { margin:0; padding:0; height:100vh; overflow:hidden; font:14px/1.5 system-ui,sans-serif; color:#333; display:flex; }
   
   /* Sidebar */
-  .sidebar{width:350px;background:#f9f9f9;border-right:1px solid #ddd;padding:24px;display:flex;flex-direction:column;gap:16px; height: 100vh; box-sizing: border-box;}
+  .sidebar{width:350px;background:#f9f9f9;border-right:1px solid #ddd;padding:24px;display:flex;flex-direction:column;gap:16px; height: 100vh; box-sizing: border-box; z-index: 1000;}
   h2{margin:0;font-size:20px;}
   .badge{background:#eef2f5;color:#333;font-size:12px;padding:4px 8px;border-radius:12px;font-weight:normal;display:inline-block;}
   
@@ -23,11 +23,11 @@
   /* Main Content */
   .main-content{flex:1;display:flex;flex-direction:column; height: 100vh; min-width: 0; min-height: 0;}
   
-  /* Fix Leaflet Map Container */
-  #map{flex:1;width:100%;background:#e5e5e5; min-height: 0;}
+  /* Map Container */
+  #map{flex:1;width:100%;background:#e5e5e5; min-height: 0; position: relative; z-index: 1;}
   
   /* Table Container */
-  .table-container{height:45%;overflow-y:auto;background:#fff;border-top:2px solid #ccc;padding:16px; box-sizing: border-box;}
+  .table-container{height:45%;overflow-y:auto;background:#fff;border-top:2px solid #ccc;padding:16px; box-sizing: border-box; z-index: 2;}
   table{width:100%;border-collapse:collapse;}
   th,td{text-align:left;padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;}
   th{background:#f4f4f4;position:sticky;top:0;}
@@ -36,24 +36,20 @@
 </head>
 <body>
 
-<!-- Sidebar -->
 <div class="sidebar">
   <h2>Global Trade <span id="total-count" class="badge">Loading...</span></h2>
-  
   <div id="chat">
     <p style="margin:0;font-size:12px;color:#666;">Ask AI to filter companies globally:</p>
     <input id="q" placeholder="e.g. machinery importers in ZA">
     <button id="ask">Ask AI</button>
   </div>
   <div id="answer"></div>
-  
   <div style="margin-top:auto;font-size:12px;color:#888;">
     <p><strong>Instructions:</strong></p>
     <p>Click on any country on the map to instantly view its registered importers and exporters.</p>
   </div>
 </div>
 
-<!-- Map and Table -->
 <div class="main-content">
   <div id="map"></div>
   <div class="table-container">
@@ -70,6 +66,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>
