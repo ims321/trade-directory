@@ -16,9 +16,6 @@
   #chat{display:flex;gap:8px;margin:24px 0;background:#f9f9f9;padding:16px;border-radius:8px;border:1px solid #eee;}
   #chat input{flex:1;}
   #answer{background:#eef2f5;padding:16px;border-radius:6px;white-space:pre-wrap;margin-bottom:24px;display:none;}
-  .verified{color:#0a7d32;font-weight:600}
-  .probable{color:#8a6d00}
-  .shell_risk{color:#b00020}
   .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;padding:12px 0;}
 </style>
 </head>
@@ -26,7 +23,7 @@
 <h2>Trade Directory <span id="total-count" class="badge">Loading...</span></h2>
 
 <div id="chat">
-  <input id="q" placeholder="Ask AI: e.g. machinery manufacturers in India or fresh produce exporters from ZA">
+  <input id="q" placeholder="Ask AI: e.g. machinery distributors in India or fresh produce exporters from ZA">
   <button id="ask">Ask AI</button>
 </div>
 <div id="answer"></div>
@@ -37,6 +34,7 @@
     <option value="ZA">South Africa (ZA)</option>
     <option value="US">United States (US)</option>
     <option value="IN">India (IN)</option>
+    <option value="GB">United Kingdom (GB)</option>
   </select>
   <select id="f-sector">
     <option value="">All sectors</option>
@@ -47,30 +45,25 @@
     <option value="Chemicals">Chemicals</option>
     <option value="Pharmaceuticals">Pharmaceuticals</option>
     <option value="Automotive">Automotive</option>
-    <option value="Logistics & Transport">Logistics & Transport</option>
+    <option value="Textiles & Apparel">Textiles & Apparel</option>
+    <option value="Energy & Petrochemicals">Energy & Petrochemicals</option>
   </select>
   <select id="f-role">
     <option value="">All trade roles</option>
     <option value="Importer">Importer</option>
     <option value="Exporter">Exporter</option>
+    <option value="Importer/Exporter">Importer/Exporter</option>
     <option value="Distributor">Distributor</option>
-    <option value="Manufacturer">Manufacturer</option>
     <option value="Logistics">Logistics/Forwarder</option>
   </select>
   <input id="f-hs" placeholder="HS-2 e.g. 84" size="8">
-  <button id="go">Filter</button>
 </div>
 
 <table>
-  <thead>
-    <tr><th>Name</th><th>Role</th><th>Sector</th><th>Country</th><th>Website</th><th>Email</th></tr>
-  </thead>
-  <tbody id="rows">
-    <tr><td colspan="6" style="text-align:center;color:#999;">Loading...</td></tr>
-  </tbody>
+  <thead><tr><th>Name</th><th>Role</th><th>Sector</th><th>Country</th><th>Website</th><th>Email</th></tr></thead>
+  <tbody id="rows"><tr><td colspan="6" style="text-align:center;color:#999;">Loading...</td></tr></tbody>
 </table>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=9"></script> <!-- Version bumped to 9 -->
+<script src="app.js?v=14"></script>
 </body>
 </html>
