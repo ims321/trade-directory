@@ -5,19 +5,30 @@ const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
 // 1. Initialize Map
+// Removed minZoom: 2, and used fitWorld() to automatically fit the whole globe.
 const map = L.map('map', { 
-    minZoom: 2, 
     worldCopyJump: true,
-    zoomAnimation: false, // Prevents the glitchy flash
+    zoomAnimation: false, 
     fadeAnimation: false
-}).setView([20, 0], 2);
+}).fitWorld();
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
-// 🚨 THE FIX: Hammer the resize function after load to guarantee it catches the final width
-setTimeout(() => { map.invalidateSize({ pan: false }); }, 100);
-setTimeout(() => { map.invalidateSize({ pan: false }); }, 500);
-setTimeout(() => { map.invalidateSize({ pan: false }); }, 1000);
+let initialLoad = true;
+
+function hardRedraw() {
+    map.invalidateSize({ pan: false });
+    if (initialLoad) {
+        map.fitWorld({ reset: true });
+    }
+}
+
+// Hammer the resize function to guarantee it catches the final width
+setTimeout(hardRedraw, 100);
+setTimeout(hardRedraw, 500);
+setTimeout(hardRedraw, 1000);
+
+setTimeout(() => { initialLoad = false; }, 1500);
 
 window.addEventListener('resize', () => { map.invalidateSize({ pan: false }); });
 
@@ -59,7 +70,6 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           } else {
             $("#country-title").textContent = `Companies in ${countryName}`;
             $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
-            setTimeout(() => { map.invalidateSize({ pan: false }); }, 100);
           }
         });
         
@@ -106,9 +116,6 @@ async function loadCompanies(countryCode) {
         <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
       </tr>`).join("");
   }
-
-  // Final redraw after table updates
-  setTimeout(() => { map.invalidateSize({ pan: false }); }, 100);
 }
 
 // 5. AI Search
@@ -134,7 +141,6 @@ $("#ask").addEventListener("click", async () => {
           <td>${r.country_code ?? ""}</td>
           <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
         </tr>`).join("");
-      setTimeout(() => { map.invalidateSize({ pan: false }); }, 100);
     }
   } catch (e) { answerDiv.textContent = "Error connecting to AI function."; }
 });
