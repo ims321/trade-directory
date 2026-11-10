@@ -1,6 +1,5 @@
 import os
 import psycopg2
-import re
 from urllib.parse import urlparse, unquote
 from pathlib import Path
 
@@ -16,21 +15,12 @@ conn = psycopg2.connect(host=parsed.hostname, port=parsed.port or 5432, user=unq
 conn.autocommit = True
 cur = conn.cursor()
 
-print("🧹 Cleaning garbage data (phone numbers, copyrights, long text)...")
-
-# 1. Delete rows where the name is mostly numbers or phone formats
+print("🧹 Deleting garbage data...")
 cur.execute(r"DELETE FROM companies_master WHERE name ~ '^[\d\+\-\(\)\s\.]+$';")
-
-# 2. Delete copyright strings
 cur.execute("DELETE FROM companies_master WHERE name ILIKE '%copyright%' OR name ILIKE '%all rights reserved%';")
-
-# 3. Delete rows with extremely long names (likely sentences or addresses)
 cur.execute("DELETE FROM companies_master WHERE length(name) > 70;")
-
-# 4. Delete rows where the domain is just a bunch of numbers
-cur.execute(r"DELETE FROM companies_master WHERE domain ~ '^[0-9]+\.com$';")
-
+cur.execute("DELETE FROM companies_master WHERE domain ~ '^[0-9]+\.com$';")
 cur.execute("SELECT refresh_directory();")
-print("✅ Database cleaned. Refreshing your frontend will show real names now.")
+print("✅ Garbage data removed.")
 cur.close()
 conn.close()

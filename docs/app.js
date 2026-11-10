@@ -1,10 +1,10 @@
 const SUPABASE_URL = "https://dokxnqhxhdgyonwpwzii.supabase.co";
-const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRva3hucWh4aGRneW9ud3B3emlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMjU0MTgsImV4cCI6MjEwOTgwMTQxOH0.C8IXHVzlS4aXuoZxAtoIDz4wxGxo76IHctfY1BuEye4"; // <--- PUT YOUR eyJ... KEY HERE
+const ANON_KEY     = "PASTE_YOUR_EYJ_KEY_HERE"; // <--- PUT YOUR eyJ... KEY HERE
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
-// 1. Initialize Map with FREE OpenStreetMap Tiles (No API Key Required)
+// 1. Use standard OpenStreetMap tiles (No watermark)
 const map = L.map('map').setView([20, 0], 2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
@@ -12,7 +12,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let geoLayer;
 
-// 2. Load GeoJSON for Country Borders
+// 2. Load Map Data
 fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
   .then(res => res.json())
   .then(data => {
@@ -21,12 +21,18 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
       onEachFeature: function(feature, layer) {
         
         layer.on('click', function(e) {
-          // Try multiple standard GeoJSON properties to find the 2-letter country code
           const props = feature.properties;
-          const countryCode = props.ISO_A2 || props.iso_a2 || props.ID || props.id;
+          let countryCode = props.ISO_A2;
           const countryName = props.ADMIN || props.name || "Selected Country";
           
-          // Highlight clicked country
+          // FIX: Handle -99 country codes that break the map
+          if (countryCode === "-99" || !countryCode) {
+              if (countryName.includes("India")) countryCode = "IN";
+              else if (countryName.includes("South Africa")) countryCode = "ZA";
+              else if (countryName.includes("United Kingdom")) countryCode = "GB";
+              else if (countryName.includes("United States")) countryCode = "US";
+          }
+          
           geoLayer.eachLayer(function(l) { l.setStyle({ color: "#3388ff", fillOpacity: 0.1 }); });
           layer.setStyle({ color: "#ff0000", fillOpacity: 0.5 });
           
@@ -35,7 +41,7 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           if (countryCode && countryCode !== "-99") {
             loadCompanies(countryCode);
           } else {
-            $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Could not determine country code for this region.</td></tr>';
+            $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Country code not recognized on this map.</td></tr>';
           }
         });
         
@@ -51,9 +57,9 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
 sb.from("company_listing").select('*', { count: 'exact', head: true }).then(({ count }) => {
   $("#total-count").textContent = `${count || 0} Companies`;
 });
-loadCompanies(null); // Load all initially
+loadCompanies(null);
 
-// 4. Fetch Companies from Supabase
+// 4. Fetch Companies
 async function loadCompanies(countryCode) {
   $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Loading...</td></tr>';
   
@@ -63,7 +69,6 @@ async function loadCompanies(countryCode) {
     .limit(100);
 
   if (countryCode) {
-    // Use ilike for safer matching in case the DB has full names instead of ISO codes
     q = q.ilike("country_code", countryCode);
   }
 
