@@ -1,6 +1,5 @@
 const SUPABASE_URL = "https://dokxnqhxhdgyonwpwzii.supabase.co";
-const ANON_KEY     = 
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRva3hucWh4aGRneW9ud3B3emlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMjU0MTgsImV4cCI6MjEwOTgwMTQxOH0.C8IXHVzlS4aXuoZxAtoIDz4wxGxo76IHctfY1BuEye4"; 
+const ANON_KEY     = "PASTE_YOUR_EYJ_KEY_HERE"; // <--- PUT YOUR eyJ... KEY HERE
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
@@ -16,37 +15,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function render(rows) {
   if (!rows || rows.length === 0) {
-    $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found.</td></tr>';
+    $("#rows").innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No companies found.</td></tr>';
     return;
   }
   $("#rows").innerHTML = rows.map(r => `
     <tr>
-      <td>${r.name ?? ""}</td>
+      <td><strong>${r.name ?? ""}</strong></td>
+      <td>${r.trade_role ?? ""}</td>
+      <td>${r.sector_label ?? ""}</td>
       <td>${r.country_code ?? ""}</td>
-      <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website}</a>` : ""}</td>
+      <td>${r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website.replace('https://', '')}</a>` : ""}</td>
       <td>${r.email ?? ""}</td>
-      <td class="${r.verification_tier}">${r.verification_tier ?? ""}</td>
     </tr>`).join("");
 }
 
 async function load(p = 0) {
   const country = $("#f-country").value || null;
-  const tier    = $("#f-tier").value || null;
+  const sector  = $("#f-sector").value || null;
+  const role    = $("#f-role").value || null;
   const hs      = $("#f-hs").value.trim() || null;
 
   let q = sb.from("company_listing")
-    .select("name,country_code,website,email,verification_tier,hs_codes")
+    .select("name,country_code,website,email,sector_label,trade_role,hs_codes")
     .order("name")
     .range(p * PAGE, (p + 1) * PAGE - 1);
 
   if (country) q = q.eq("country_code", country);
-  if (tier)    q = q.eq("verification_tier", tier);
+  if (sector)  q = q.eq("sector_label", sector);
+  if (role)    q = q.eq("trade_role", role);
   if (hs)      q = q.contains("hs_codes", [hs]);
 
   const { data, error } = await q;
   if (error) { 
     console.error(error); 
-    $("#rows").innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
+    $("#rows").innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${error.message}</td></tr>`;
     return; 
   }
   render(data);
