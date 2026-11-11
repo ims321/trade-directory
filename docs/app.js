@@ -64,7 +64,7 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           if (countryCode && countryCode !== "-99") {
             currentCountryCode = countryCode;
             $("#country-title").textContent = `Companies in ${countryName} (${countryCode})`;
-            loadCompanies(currentCountryCode, $("#f-role").value);
+            loadCompanies(currentCountryCode, $("#f-role").value, $("#f-source").value);
           } else {
             $("#country-title").textContent = `Companies in ${countryName}`;
             $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
@@ -83,10 +83,10 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
 sb.from("company_listing").select('*', { count: 'exact', head: true }).then(({ count }) => {
   $("#total-count").textContent = `${count || 0} Companies`;
 });
-loadCompanies(null, null);
+loadCompanies(null, null, null);
 
-// 4. Fetch Companies
-async function loadCompanies(countryCode, role) {
+// 4. Fetch Companies (Updated with Source filter)
+async function loadCompanies(countryCode, role, source) {
   if (!countryCode) {
       $("#country-title").textContent = "Global View";
   }
@@ -100,6 +100,7 @@ async function loadCompanies(countryCode, role) {
 
   if (countryCode) q = q.ilike("country_code", countryCode);
   if (role) q = q.ilike("trade_role", `%${role}%`);
+  if (source) q = q.ilike("source", `%${source}%`);
 
   const { data, error } = await q;
   
@@ -119,11 +120,11 @@ async function loadCompanies(countryCode, role) {
   }
 }
 
-// 5. Event Listeners (THE FIX)
+// 5. Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
     // Apply Filter Button
     $("#apply-filter").addEventListener("click", () => {
-        loadCompanies(currentCountryCode, $("#f-role").value);
+        loadCompanies(currentCountryCode, $("#f-role").value, $("#f-source").value);
     });
 
     // Reset Button
@@ -131,7 +132,8 @@ document.addEventListener("DOMContentLoaded", () => {
         currentCountryCode = null;
         $("#country-title").textContent = "Global View";
         $("#f-role").value = "";
-        loadCompanies(null, null);
+        $("#f-source").value = "";
+        loadCompanies(null, null, null);
         map.fitBounds(worldBounds);
         
         if (geoLayer) {
