@@ -2,56 +2,58 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Global Trade Directory</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  /* ── DESKTOP LAYOUT (Default) ── */
-  html, body { margin:0; padding:0; height:100vh; overflow:hidden; font:14px/1.5 system-ui,sans-serif; color:#333; }
-  body { display: grid; grid-template-columns: 350px 1fr; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; width: 100%; max-width: 100vw; overflow-x: hidden; font:14px/1.5 system-ui,sans-serif; color:#333; }
   
-  .sidebar { background:#f9f9f9; border-right:1px solid #ddd; padding:24px; display:flex; flex-direction:column; gap:16px; overflow-y: auto; }
   h2 { margin:0; font-size:20px; }
   .badge { background:#eef2f5; color:#333; font-size:12px; padding:4px 8px; border-radius:12px; font-weight:normal; display:inline-block; }
-  
   #chat { display:flex; flex-direction:column; gap:8px; }
-  #chat input { padding:10px; border:1px solid #ccc; border-radius:4px; }
-  #ask { background:#000; color:#fff; padding:10px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; }
+  #chat input { padding:10px; border:1px solid #ccc; border-radius:4px; width: 100%;}
+  #ask { background:#000; color:#fff; padding:10px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; width: 100%;}
   #answer { background:#eef2f5; padding:12px; border-radius:6px; white-space:pre-wrap; display:none; font-size:13px; }
 
   .filter-group { display:flex; flex-direction:column; gap:8px; margin-top:8px; border-top:1px solid #eee; padding-top:16px;}
   .filter-group select { padding:10px; border:1px solid #ccc; border-radius:4px; font-size:14px; width:100%; }
-  .filter-group button { background:#fff; color:#333; border:1px solid #ccc; padding:10px; border-radius:4px; cursor:pointer; font-weight:bold;}
-  .filter-group button:hover { background:#f0f0f0; }
-
-  .main-content { display: grid; grid-template-rows: minmax(0, 1fr) 400px; height: 100vh; min-width: 0; }
-  #map { width: 100%; height: 100%; background:#e5e5e5; z-index: 1; }
-  .table-container { overflow-y: auto; scrollbar-gutter: stable; background: #fff; border-top: 2px solid #ccc; padding: 16px; box-sizing: border-box; z-index: 2; }
+  .filter-group button { background:#fff; color:#333; border:1px solid #ccc; padding:10px; border-radius:4px; cursor:pointer; font-weight:bold; width: 100%;}
   
   table { width:100%; border-collapse:collapse; }
   th, td { text-align:left; padding:8px 12px; border-bottom:1px solid #eee; font-size:13px; }
   th { background:#f4f4f4; position:sticky; top:0; }
   .source-badge { background:#e0e7ff; color:#3730a3; font-size:10px; padding:2px 6px; border-radius:4px; text-transform:uppercase; font-weight:bold; }
 
-  /* ── MOBILE LAYOUT (Screens < 768px) ── */
+  /* ── DESKTOP LAYOUT (Screens > 768px) ── */
+  @media (min-width: 769px) {
+    html, body { height: 100vh; overflow: hidden; }
+    body { display: grid; grid-template-columns: 350px 1fr; }
+    .sidebar { background:#f9f9f9; border-right:1px solid #ddd; padding:24px; display:flex; flex-direction:column; gap:16px; overflow-y: auto; }
+    .main-content { display: grid; grid-template-rows: minmax(0, 1fr) 400px; height: 100vh; min-width: 0; }
+    #map { width: 100%; height: 100%; background:#e5e5e5; z-index: 1; }
+    .table-container { overflow-y: auto; scrollbar-gutter: stable; background: #fff; border-top: 2px solid #ccc; padding: 16px; z-index: 2; }
+  }
+
+  /* ── MOBILE LAYOUT (Screens <= 768px) ── */
   @media (max-width: 768px) {
     html, body { height: auto; overflow-y: auto; }
     body { display: flex; flex-direction: column; }
     
     /* Sidebar stacks on top */
-    .sidebar { width: 100%; height: auto; padding: 16px; border-right: none; border-bottom: 1px solid #ddd; box-sizing: border-box; }
+    .sidebar { width: 100%; padding: 16px; background:#f9f9f9; border-bottom: 1px solid #ddd; }
     
-    /* Map gets a fixed height on mobile so it doesn't collapse */
-    .main-content { display: flex; flex-direction: column; height: auto; }
-    #map { height: 350px; width: 100%; flex: none; }
+    .main-content { display: flex; flex-direction: column; width: 100%; }
     
-    /* Table gets its own scroll area */
-    .table-container { height: 400px; padding: 12px; flex: none; }
+    /* Map gets a fixed height */
+    #map { height: 300px; width: 100%; background:#e5e5e5; }
     
-    /* Make table text smaller to fit more columns on phone */
+    /* Table container gets horizontal scroll so it doesn't break the screen width */
+    .table-container { width: 100%; height: 400px; overflow-x: auto; overflow-y: auto; background: #fff; border-top: 2px solid #ccc; padding: 12px; }
+    
+    /* Force the table to be wider than the phone screen, triggering the horizontal scroll inside the container */
+    table { min-width: 600px; }
     th, td { padding: 6px 8px; font-size: 12px; }
-    
-    /* Prevent long links from breaking the table */
     td a { word-break: break-all; }
   }
 </style>
@@ -87,9 +89,8 @@
     <p style="margin:8px 0 0 0;font-size:12px;color:#666;">Filter by Source:</p>
     <select id="f-source">
       <option value="">All Sources</option>
-      <option value="GLEIF Global Registry">GLEIF Registry</option>
-      <option value="ImportYeti">ImportYeti (US Customs)</option>
       <option value="Kompass">Kompass</option>
+      <option value="ImportYeti">ImportYeti (US Customs)</option>
       <option value="FPEF Directory">FPEF (South Africa)</option>
       <option value="EEPC India">EEPC (India)</option>
       <option value="BIFA">BIFA (UK Logistics)</option>
@@ -107,7 +108,7 @@
 <div class="main-content">
   <div id="map"></div>
   <div class="table-container">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px; min-width: 600px;">
       <h3 id="country-title" style="margin:0; font-size:16px;">Global View</h3>
     </div>
     <table>
@@ -119,6 +120,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=37"></script>
+<script src="app.js?v=38"></script>
 </body>
 </html>
