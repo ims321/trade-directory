@@ -4,6 +4,8 @@ const ANON_KEY     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
+let currentCountryCode = null;
+
 // 1. Initialize Map
 const southWest = L.latLng(-85, -180);
 const northEast = L.latLng(85, 180);
@@ -15,24 +17,17 @@ const map = L.map('map', {
     minZoom: 1,
     zoomAnimation: false, 
     fadeAnimation: false
-});
-
-// 🚨 THE FIX: Fit the exact boundaries of the world perfectly into the box
-map.fitBounds(worldBounds);
+}).fitBounds(worldBounds);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
     attribution: '&copy; OpenStreetMap',
     noWrap: true 
 }).addTo(map);
 
-// Force redraw to ensure the map fills the container
 setTimeout(() => { map.invalidateSize({ pan: false }); map.fitBounds(worldBounds); }, 100);
 setTimeout(() => { map.invalidateSize({ pan: false }); map.fitBounds(worldBounds); }, 500);
-setTimeout(() => { map.invalidateSize({ pan: false }); }, 1000);
 
-window.addEventListener('resize', () => { 
-    map.invalidateSize({ pan: false }); 
-});
+window.addEventListener('resize', () => { map.invalidateSize({ pan: false }); });
 
 let geoLayer;
 
@@ -67,8 +62,9 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
           layer.setStyle({ color: "#ff0000", fillOpacity: 0.5 });
           
           if (countryCode && countryCode !== "-99") {
+            currentCountryCode = countryCode;
             $("#country-title").textContent = `Companies in ${countryName} (${countryCode})`;
-            loadCompanies(countryCode);
+            loadCompanies(currentCountryCode, $("#f-role").value);
           } else {
             $("#country-title").textContent = `Companies in ${countryName}`;
             $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
@@ -87,11 +83,13 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
 sb.from("company_listing").select('*', { count: 'exact', head: true }).then(({ count }) => {
   $("#total-count").textContent = `${count || 0} Companies`;
 });
-loadCompanies(null);
+loadCompanies(null, null);
 
 // 4. Fetch Companies
-async function loadCompanies(countryCode) {
-  if (!countryCode) $("#country-title").textContent = "Global View";
+async function loadCompanies(countryCode, role) {
+  if (!countryCode) {
+      $("#country-title").textContent = "Global View";
+  }
   
   $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Loading...</td></tr>';
   
@@ -101,13 +99,14 @@ async function loadCompanies(countryCode) {
     .limit(100);
 
   if (countryCode) q = q.ilike("country_code", countryCode);
+  if (role) q = q.ilike("trade_role", `%${role}%`);
 
   const { data, error } = await q;
   
   if (error) { 
     $("#rows").innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
   } else if (!data || data.length === 0) {
-    $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
+    $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this filter.</td></tr>';
   } else {
     $("#rows").innerHTML = data.map(r => `
       <tr>
@@ -120,7 +119,28 @@ async function loadCompanies(countryCode) {
   }
 }
 
-// 5. AI Search
+// 5. Event Listeners (THE FIX)
+document.addEventListener("DOMContentLoaded", () => {
+    // Apply Filter Button
+    $("#apply-filter").addEventListener("click", () => {
+        loadCompanies(currentCountryCode, $("#f-role").value);
+    });
+
+    // Reset Button
+    $("#reset-btn").addEventListener("click", () => {
+        currentCountryCode = null;
+        $("#country-title").textContent = "Global View";
+        $("#f-role").value = "";
+        loadCompanies(null, null);
+        map.fitBounds(worldBounds);
+        
+        if (geoLayer) {
+            geoLayer.eachLayer(function(l) { l.setStyle({ color: "#3388ff", fillOpacity: 0.1 }); });
+        }
+    });
+});
+
+// 6. AI Search
 $("#ask").addEventListener("click", async () => {
   const message = $("#q").value.trim();
   if (!message) return;
