@@ -6,7 +6,7 @@
 <title>Global Trade Directory</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  /* 🚨 PREVENT HORIZONTAL SCROLLING ON THE ENTIRE PAGE */
+  /* 🚨 PREVENT HORIZONTAL SCROLLING */
   * { box-sizing: border-box; }
   html, body { 
       margin: 0; padding: 0; 
@@ -26,13 +26,12 @@
   .filter-group select { padding:10px; border:1px solid #ccc; border-radius:4px; font-size:14px; width:100%; }
   .filter-group button { background:#fff; color:#333; border:1px solid #ccc; padding:10px; border-radius:4px; cursor:pointer; font-weight:bold; width: 100%; }
   
-  /* Table styles */
   table { width:100%; border-collapse:collapse; }
   th, td { text-align:left; padding:8px 12px; border-bottom:1px solid #eee; font-size:13px; }
   th { background:#f4f4f4; position:sticky; top:0; }
   .source-badge { background:#e0e7ff; color:#3730a3; font-size:10px; padding:2px 6px; border-radius:4px; text-transform:uppercase; font-weight:bold; }
 
-  /* ── DESKTOP LAYOUT (Screens > 768px) ── */
+  /* ── DESKTOP LAYOUT ── */
   @media (min-width: 769px) {
     html, body { height: 100vh; overflow: hidden; }
     body { display: grid; grid-template-columns: 350px 1fr; }
@@ -43,21 +42,20 @@
     .table-scroll-wrapper { width: 100%; overflow-x: auto; }
   }
 
-  /* ── MOBILE LAYOUT (Screens <= 768px) ── */
+  /* ── MOBILE LAYOUT (Rigid Block Layout) ── */
   @media (max-width: 768px) {
-    body { display: flex; flex-direction: column; height: auto; }
+    html, body { height: auto; overflow-y: auto; }
+    body { display: block; } /* Revert to standard block to prevent collapsing */
+    
     .sidebar { width: 100%; padding: 16px; background:#f9f9f9; border-bottom: 1px solid #ddd; }
-    .main-content { display: flex; flex-direction: column; width: 100%; }
+    .main-content { width: 100%; display: block; }
     
-    /* Lock map to mobile screen */
-    #map { width: 100%; height: 300px; background:#e5e5e5; z-index: 1; }
+    /* 🚨 FORCE RIGID HEIGHT ON MAP */
+    #map { width: 100%; height: 350px; min-height: 350px; background:#e5e5e5; z-index: 1; }
     
-    /* Table container stays inside the screen */
     .table-container { width: 100%; height: 450px; overflow-y: auto; background: #fff; border-top: 2px solid #ccc; padding: 12px; }
-    
-    /* 🚨 THE FIX: Allow ONLY the table to scroll horizontally */
     .table-scroll-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { min-width: 600px; } /* Forces table to be wider than phone, triggering scroll */
+    table { min-width: 600px; } /* Triggers horizontal scroll inside the container */
     
     th, td { padding: 6px 8px; font-size: 12px; }
     td a { word-break: break-all; }
@@ -118,7 +116,6 @@
       <h3 id="country-title" style="margin:0; font-size:16px;">Global View</h3>
     </div>
     
-    <!-- 🚨 THE FIX: The table is wrapped in a dedicated scrollable container -->
     <div class="table-scroll-wrapper">
       <table>
         <thead><tr><th>Name</th><th>Source</th><th>Role</th><th>Country</th><th>Website</th></tr></thead>
@@ -131,6 +128,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=39"></script>
+<script src="app.js?v=40"></script>
 </body>
 </html>
