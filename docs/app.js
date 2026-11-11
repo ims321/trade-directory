@@ -5,6 +5,7 @@ const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = s => document.querySelector(s);
 
 let currentCountryCode = null;
+let currentCountryName = null;
 
 // 1. Initialize Map
 const southWest = L.latLng(-85, -180);
@@ -27,14 +28,49 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 setTimeout(() => { map.invalidateSize({ pan: false }); map.fitBounds(worldBounds); }, 100);
 setTimeout(() => { map.invalidateSize({ pan: false }); map.fitBounds(worldBounds); }, 500);
 
-window.addEventListener('resize', () => { map.invalidateSize({ pan: false }); });
-
 let geoLayer;
 
-// 2. Load Map Data
+// 2. Load Map Data & Populate Dropdown
 fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
   .then(res => res.json())
   .then(data => {
+    // Populate the Country Dropdown
+    const countrySelect = $("#f-country");
+    const countryList = [];
+    
+    data.features.forEach(f => {
+        const props = f.properties;
+        const countryName = props.ADMIN || props.name || "Unknown";
+        let countryCode = props.ISO_A2;
+        if (countryCode === "-99" || !countryCode) countryCode = props.ISO_A2_EH;
+        if (countryCode === "-99" || !countryCode) countryCode = props.WB_A2;
+        if (countryCode === "-99" || !countryCode) countryCode = props.ID;
+        
+        if (countryCode === "-99" || !countryCode) {
+            if (countryName.includes("India")) countryCode = "IN";
+            else if (countryName.includes("South Africa")) countryCode = "ZA";
+            else if (countryName.includes("United Kingdom")) countryCode = "GB";
+            else if (countryName.includes("United States")) countryCode = "US";
+            else if (countryName.includes("France")) countryCode = "FR";
+            else if (countryName.includes("Brazil")) countryCode = "BR";
+            else if (countryName.includes("Australia")) countryCode = "AU";
+        }
+        
+        if (countryCode && countryCode !== "-99") {
+            countryList.push({ code: countryCode, name: countryName });
+        }
+    });
+
+    // Sort alphabetically and add to dropdown
+    countryList.sort((a, b) => a.name.localeCompare(b.name));
+    countryList.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.code;
+        opt.textContent = c.name;
+        countrySelect.appendChild(opt);
+    });
+
+    // Load the Map Layer
     geoLayer = L.geoJSON(data, {
       style: { color: "#3388ff", weight: 1, fillOpacity: 0.1 },
       onEachFeature: function(feature, layer) {
@@ -58,38 +94,82 @@ fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/coun
               else if (countryName.includes("Australia")) countryCode = "AU";
           }
           
-          geoLayer.eachLayer(function(l) { l.setStyle({ color: "#3388ff", fillOpacity: 0.1 }); });
-          layer.setStyle({ color: "#ff0000", fillOpacity: 0.5 });
-          
           if (countryCode && countryCode !== "-99") {
-            currentCountryCode = countryCode;
-            $("#country-title").textContent = `Companies in ${countryName} (${countryCode})`;
-            loadCompanies(currentCountryCode, $("#f-role").value, $("#f-source").value);
-          } else {
-            $("#country-title").textContent = `Companies in ${countryName}`;
-            $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">No companies found for this country.</td></tr>';
+            selectCountry(countryCode, countryName, layer);
           }
         });
         
-        layer.on('mouseover', function() { layer.setStyle({ fillOpacity: 0.3 }); });
-        layer.on('mouseout', function() { 
-            if(layer.options.color !== "#ff0000") layer.setStyle({ fillOpacity: 0.1 }); 
-        });
+        layer.on('mouseover', function() { if(!currentCountryCode) layer.setStyle({ fillOpacity: 0.3 }); });
+        layer.on('mouseout', function() { if(!currentCountryCode) layer.setStyle({ fillOpacity: 0.1 }); });
       }
     }).addTo(map);
   });
 
-// 3. Load initial count
+// 3. Selection Logic (Called by Map Click OR Dropdown)
+function selectCountry(code, name, layer = null) {
+    currentCountryCode = code;
+    currentCountryName = name;
+    
+    // Update Dropdown
+    $("#f-country").value = code;
+    
+    // Update Title
+    $("#country-title").textContent = `Companies in ${name}`;
+    
+    // Update Map Highlight
+    if (geoLayer) {
+        geoLayer.eachLayer(l => {
+            const lProps = l.feature.properties;
+            let lCode = lProps.ISO_A2 || lProps.ISO_A2_EH || lProps.WB_A2;
+            
+            // FIX missing ISO codes in the map
+            if (lCode === "-99" || !lCode) {
+                const lName = lProps.ADMIN || lProps.name || "";
+                if (lName.includes("India")) lCode = "IN";
+                else if (lName.includes("South Africa")) lCode = "ZA";
+                else if (lName.includes("United Kingdom")) lCode = "GB";
+                else if (lName.includes("United States")) lCode = "US";
+                else if (lName.includes("France")) lCode = "FR";
+                else if (lName.includes("Brazil")) lCode = "BR";
+                else if (lName.includes("Australia")) lCode = "AU";
+            }
+
+            if (lCode === code) {
+                l.setStyle({ color: "#ff0000", fillOpacity: 0.5 });
+                if (!layer) map.fitBounds(l.getBounds()); // Zoom to country if selected via dropdown
+            } else {
+                l.setStyle({ color: "#3388ff", fillOpacity: 0.1 });
+            }
+        });
+    }
+    
+    // Load Data
+    loadCompanies(code, $("#f-role").value, $("#f-source").value);
+}
+
+function resetWorldwide() {
+    currentCountryCode = null;
+    currentCountryName = null;
+    $("#f-country").value = "";
+    $("#country-title").textContent = "Global View";
+    
+    if (geoLayer) {
+        geoLayer.eachLayer(l => l.setStyle({ color: "#3388ff", fillOpacity: 0.1 }));
+    }
+    
+    map.fitBounds(worldBounds);
+    loadCompanies(null, $("#f-role").value, $("#f-source").value);
+}
+
+// 4. Load initial count
 sb.from("company_listing").select('*', { count: 'exact', head: true }).then(({ count }) => {
   $("#total-count").textContent = `${count || 0} Companies`;
 });
 loadCompanies(null, null, null);
 
-// 4. Fetch Companies (Updated with Source filter)
+// 5. Fetch Companies
 async function loadCompanies(countryCode, role, source) {
-  if (!countryCode) {
-      $("#country-title").textContent = "Global View";
-  }
+  if (!countryCode) $("#country-title").textContent = "Global View";
   
   $("#rows").innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">Loading...</td></tr>';
   
@@ -120,29 +200,26 @@ async function loadCompanies(countryCode, role, source) {
   }
 }
 
-// 5. Event Listeners
+// 6. Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
-    // Apply Filter Button
+    // Country Dropdown Change
+    $("#f-country").addEventListener("change", (e) => {
+        const code = e.target.value;
+        if (!code) {
+            resetWorldwide();
+        } else {
+            const name = e.target.options[e.target.selectedIndex].text;
+            selectCountry(code, name);
+        }
+    });
+
+    // Apply Filter Button (Role & Source only)
     $("#apply-filter").addEventListener("click", () => {
         loadCompanies(currentCountryCode, $("#f-role").value, $("#f-source").value);
     });
-
-    // Reset Button
-    $("#reset-btn").addEventListener("click", () => {
-        currentCountryCode = null;
-        $("#country-title").textContent = "Global View";
-        $("#f-role").value = "";
-        $("#f-source").value = "";
-        loadCompanies(null, null, null);
-        map.fitBounds(worldBounds);
-        
-        if (geoLayer) {
-            geoLayer.eachLayer(function(l) { l.setStyle({ color: "#3388ff", fillOpacity: 0.1 }); });
-        }
-    });
 });
 
-// 6. AI Search
+// 7. AI Search
 $("#ask").addEventListener("click", async () => {
   const message = $("#q").value.trim();
   if (!message) return;

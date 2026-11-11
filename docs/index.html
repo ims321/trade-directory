@@ -46,7 +46,12 @@
   <div id="answer"></div>
 
   <div class="filter-group">
-    <p style="margin:0;font-size:12px;color:#666;">Filter by Role:</p>
+    <p style="margin:0;font-size:12px;color:#666;">Select Country:</p>
+    <select id="f-country">
+      <option value="">🌍 Worldwide</option>
+    </select>
+
+    <p style="margin:8px 0 0 0;font-size:12px;color:#666;">Filter by Role:</p>
     <select id="f-role">
       <option value="">All Roles</option>
       <option value="Importer">Importers</option>
@@ -72,7 +77,7 @@
 
   <div style="margin-top:auto;font-size:12px;color:#888;">
     <p><strong>Instructions:</strong></p>
-    <p>Click on any country on the map to instantly view its registered importers and exporters.</p>
+    <p>Select a country from the dropdown or click on the map.</p>
   </div>
 </div>
 
@@ -81,7 +86,6 @@
   <div class="table-container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <h3 id="country-title" style="margin:0;">Global View</h3>
-      <button id="reset-btn" style="padding:6px 12px;cursor:pointer;">Reset View</button>
     </div>
     <table>
       <thead><tr><th>Name</th><th>Source</th><th>Role</th><th>Country</th><th>Website</th></tr></thead>
@@ -92,6 +96,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=35"></script>
+<script src="app.js?v=36"></script>
 </body>
 </html>
